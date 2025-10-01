@@ -35,6 +35,14 @@ interface Weights {
   adaptabilityWeight: number; // 0-1
 }
 
+interface AssessmentContext {
+  teamName: string;
+  department: string;
+  assessmentDate: string;
+  assessorName: string;
+  assessmentPurpose: string;
+}
+
 const defaultItems: MetricItem[] = [
   // Creative Capacity (environmental enablers)
   {
@@ -116,6 +124,14 @@ const defaultWeights: Weights = {
   adaptabilityWeight: 0.5,
 };
 
+const defaultContext: AssessmentContext = {
+  teamName: "",
+  department: "",
+  assessmentDate: new Date().toISOString().split('T')[0],
+  assessorName: "",
+  assessmentPurpose: "",
+};
+
 // Utility helpers
 function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
@@ -139,11 +155,12 @@ function download(filename: string, text: string) {
   document.body.removeChild(el);
 }
 
-function encodeState(items: MetricItem[], weights: Weights) {
+function encodeState(items: MetricItem[], weights: Weights, context: AssessmentContext) {
   const state = {
     v: 1,
     items: items.map(({ id, value }) => ({ id, value })),
     weights,
+    context,
   };
   return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
 }
@@ -196,6 +213,21 @@ export default function CERWidget() {
     return defaultWeights;
   });
 
+  const [context, setContext] = useState<AssessmentContext>(() => {
+    const saved = localStorage.getItem("cer_context");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (_) {}
+    }
+    const hash = window.location.hash.replace(/^#/, "");
+    if (hash) {
+      const state = decodeState(hash);
+      if (state?.context) return state.context as AssessmentContext;
+    }
+    return defaultContext;
+  });
+
   useEffect(() => {
     localStorage.setItem(
       "cer_items",
@@ -206,6 +238,10 @@ export default function CERWidget() {
   useEffect(() => {
     localStorage.setItem("cer_weights", JSON.stringify(weights));
   }, [weights]);
+
+  useEffect(() => {
+    localStorage.setItem("cer_context", JSON.stringify(context));
+  }, [context]);
 
   const capacityItems = useMemo(
     () => items.filter((i) => i.group === "capacity"),
@@ -272,12 +308,17 @@ export default function CERWidget() {
   );
 
   const shareableLink = useMemo(() => {
-    const encoded = encodeState(items, weights);
+    const encoded = encodeState(items, weights, context);
     return `${window.location.origin}${window.location.pathname}#${encoded}`;
-  }, [items, weights]);
+  }, [items, weights, context]);
 
   function exportCSV() {
     const headers = [
+      "teamName",
+      "department", 
+      "assessmentDate",
+      "assessorName",
+      "assessmentPurpose",
       "group",
       "id",
       "label",
@@ -292,6 +333,11 @@ export default function CERWidget() {
       "pivotTier",
     ];
     const rows = items.map((i) => [
+      `"${context.teamName}"`,
+      `"${context.department}"`,
+      `"${context.assessmentDate}"`,
+      `"${context.assessorName}"`,
+      `"${context.assessmentPurpose}"`,
       i.group,
       i.id,
       `"${i.label}"`,
@@ -306,12 +352,16 @@ export default function CERWidget() {
       `"${pivotTier}"`,
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    download("creativity_resilience_export.csv", csv);
+    const filename = context.teamName 
+      ? `cer_assessment_${context.teamName.replace(/[^a-zA-Z0-9]/g, '_')}_${context.assessmentDate}.csv`
+      : "creativity_resilience_export.csv";
+    download(filename, csv);
   }
 
   function resetAll() {
     setItems(defaultItems);
     setWeights(defaultWeights);
+    setContext(defaultContext);
     window.location.hash = "";
   }
 
@@ -331,6 +381,15 @@ export default function CERWidget() {
             <p className="text-sm text-neutral-600">
               A lightweight, evidence-informed index connecting creative capacity & adaptability to resilience outcomes.
             </p>
+            {context.teamName && (
+              <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">Assessing:</span> {context.teamName}
+                  {context.department && ` (${context.department})`}
+                  {context.assessmentDate && ` • ${context.assessmentDate}`}
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -355,6 +414,81 @@ export default function CERWidget() {
         </div>
       </header>
 
+      {/* Assessment Context */}
+      <section className="max-w-6xl mx-auto px-4 py-4">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6"
+        >
+          <h2 className="text-lg font-semibold mb-4">Assessment Context</h2>
+          <p className="text-sm text-neutral-600 mb-4">
+            Identify the team or unit being assessed to provide context for stakeholders and ensure clear communication of results.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Team/Unit Name *
+              </label>
+              <input
+                type="text"
+                value={context.teamName}
+                onChange={(e) => setContext(prev => ({ ...prev, teamName: e.target.value }))}
+                placeholder="e.g., Product Engineering Team"
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Department/Division
+              </label>
+              <input
+                type="text"
+                value={context.department}
+                onChange={(e) => setContext(prev => ({ ...prev, department: e.target.value }))}
+                placeholder="e.g., Engineering, Marketing, Operations"
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Assessment Date
+              </label>
+              <input
+                type="date"
+                value={context.assessmentDate}
+                onChange={(e) => setContext(prev => ({ ...prev, assessmentDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Assessor Name
+              </label>
+              <input
+                type="text"
+                value={context.assessorName}
+                onChange={(e) => setContext(prev => ({ ...prev, assessorName: e.target.value }))}
+                placeholder="e.g., Sarah Johnson, Team Lead"
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="md:col-span-2 lg:col-span-2">
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Assessment Purpose
+              </label>
+              <input
+                type="text"
+                value={context.assessmentPurpose}
+                onChange={(e) => setContext(prev => ({ ...prev, assessmentPurpose: e.target.value }))}
+                placeholder="e.g., Quarterly resilience review, Pre-reorganization assessment"
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
       {/* Body */}
       <main className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Controls */}
@@ -364,10 +498,16 @@ export default function CERWidget() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-4"
           >
-            <h2 className="text-lg font-semibold mb-2">Inputs</h2>
+            <h2 className="text-lg font-semibold mb-2">Assessment Inputs</h2>
             <p className="text-sm text-neutral-600 mb-4">
               Use these sliders to assess your team or unit. Scores are 0–100. Hover labels for guidance.
             </p>
+            <div className="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-800">
+                <span className="font-medium">For Stakeholders:</span> Each metric represents a key capability that enables teams to be creative and resilient. 
+                Higher scores indicate stronger capabilities. Consider your team's current state, not aspirational goals.
+              </p>
+            </div>
 
             {/* Weights */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -455,6 +595,11 @@ export default function CERWidget() {
             <h2 className="text-lg font-semibold mb-2">C→R Index</h2>
             <div className="text-sm text-neutral-600 mb-4">
               Composite score from weighted Creative Capacity and Creative Adaptability.
+              {context.teamName && (
+                <div className="mt-2 text-xs text-blue-600">
+                  Assessment for: <span className="font-medium">{context.teamName}</span>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <div className="text-4xl font-semibold tabular-nums">{Math.round(CER)}</div>
@@ -529,6 +674,12 @@ export default function CERWidget() {
               <li>Discuss spread on each dimension and what would move it +10 in 90 days.</li>
               <li>Re‑score quarterly; track CER vs. real recovery times and pivot outcomes.</li>
             </ol>
+            <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm text-green-800">
+                <span className="font-medium">Stakeholder Tip:</span> Use the "Copy Share Link" button to send this assessment to team members. 
+                The link preserves all context and can be used to aggregate multiple perspectives.
+              </p>
+            </div>
           </motion.div>
         </section>
       </main>
