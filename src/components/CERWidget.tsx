@@ -371,15 +371,55 @@ export default function CERWidget() {
 
   return (
     <div className="min-h-screen w-full bg-neutral-50 text-neutral-900">
+      {/* Hero Logo */}
+      <section className="w-full bg-gradient-to-br from-gray-100 to-gray-200 py-12">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <div className="mb-6">
+            <div className="text-sm font-medium text-gray-600 mb-2">ANOTHER LIMITED REBELLION</div>
+            <div className="relative inline-block">
+              {/* RXD Logo - Stylized with collage effect */}
+              <div className="text-8xl md:text-9xl font-black tracking-tight">
+                <span className="inline-block relative">
+                  <span className="absolute inset-0 bg-gradient-to-r from-red-500 via-blue-500 to-yellow-500 opacity-20 blur-sm"></span>
+                  <span className="relative bg-gradient-to-r from-red-600 via-blue-600 to-yellow-600 bg-clip-text text-transparent">
+                    R
+                  </span>
+                </span>
+                <span className="inline-block relative mx-2">
+                  <span className="absolute inset-0 bg-gradient-to-r from-green-500 via-purple-500 to-orange-500 opacity-20 blur-sm"></span>
+                  <span className="relative bg-gradient-to-r from-green-600 via-purple-600 to-orange-600 bg-clip-text text-transparent">
+                    X
+                  </span>
+                </span>
+                <span className="inline-block relative">
+                  <span className="absolute inset-0 bg-gradient-to-r from-pink-500 via-teal-500 to-indigo-500 opacity-20 blur-sm"></span>
+                  <span className="relative bg-gradient-to-r from-pink-600 via-teal-600 to-indigo-600 bg-clip-text text-transparent">
+                    D
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="bg-black text-white px-8 py-4 rounded-lg inline-block">
+            <div className="text-2xl font-bold text-orange-400 mb-1">
+              Resilience by Design <span className="text-lg">Index</span>
+            </div>
+            <div className="text-sm text-gray-300">
+              Created by Modern Ancients from Vibes at the ROI of Creativity Summit
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Header */}
       <header className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b border-neutral-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Creativity → Resilience (C→R) Metric
+            <h1 className="text-xl font-semibold tracking-tight">
+              C→R Assessment Tool
             </h1>
             <p className="text-sm text-neutral-600">
-              A lightweight, evidence-informed index connecting creative capacity & adaptability to resilience outcomes.
+              Measure creative capacity & adaptability for resilience outcomes.
             </p>
             {context.teamName && (
               <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
